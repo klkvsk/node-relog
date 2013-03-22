@@ -1,0 +1,27 @@
+{
+    "name": "relog",
+    "version": "0.1.0",
+    "author": "Mikhail Kulakovskiy <m@klkvsk.ru>",
+    "description": "http service for remote logging",
+    "bin": {
+        "relog": "./main.js"
+    },
+    "scripts": {
+        "start": "node ./main.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/klkvsk/relog.git"
+    },
+    "keywords": [
+        "http",
+        "server",
+        "logging"
+    ],
+    "dependencies" : {
+        "mongodb"  :  "1.2.x"
+    },
+    "engines": {
+        "node": ">=0.8"
+    }
+}

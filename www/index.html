@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ReLog</title>
+    <script type="text/javascript" src="/jquery.js"></script>
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+    <style type="text/css">
+        .template {
+            display: none;
+        }
+
+        body {
+            background: #ddd;
+        }
+
+        body, input {
+            font-family: Consolas, Monaco, "Courier New", monospace;
+        }
+
+        #list {
+            margin-left: 350px;
+        }
+
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        #sidebar.responsive {
+            position: inherit;
+        }
+        #list.responsive {
+            margin: 0;
+        }
+
+        .item, #sidebar {
+            padding: 10px;
+            margin: 10px;
+            background: #fff;
+            box-shadow: 0 0 10px #444;
+        }
+
+        .date {
+            color: #666;
+            font-size: 80%;
+        }
+        .type {
+            font-weight: bold;
+            font-size: 120%;
+        }
+
+        .tags span {
+            border-radius: 4px;
+            box-shadow: 0 0 5px #999;
+            background-color: #eeeeff;
+            margin: 5px;
+            padding: 0 4px;
+            cursor: pointer;
+        }
+
+        .tags {
+            padding: 5px 0;
+        }
+
+        /* add more to colorize your tags */
+        #tag_error      { background-color: #ffbbbb; }
+        #tag_warning    { background-color: #ffffbb; }
+        #tag_debug      { background-color: #bbffbb; }
+
+        details {
+            outline: none;
+            cursor: pointer;
+        }
+
+
+        label {
+            display: inline-block;
+            width: 70px;
+        }
+
+        input {
+            box-shadow: 0 0 5px #999 inset;
+            background: #fff;
+            border: 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+    </style>
+    <script type="text/javascript">
+        $(function () {
+            var filters = ['type', 'code', 'host', 'tags', 'from', 'till'];
+
+            function safeHtml(s) {
+                if (!s) return s;
+                return s.replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+            }
+
+            function parseQuery() {
+                var i;
+                var path = window.location.pathname.split('/')[1];
+                $('title').text('ReLog - ' + path);
+                var query = window.location.search;
+                var args = {};
+                if (query && query.length > 0 && query[0] == '?') {
+                    query = query.substr(1).split('&');
+                    for (i in query) {
+                        if (query.hasOwnProperty(i)) {
+                            var pair = /(.+?)=(.+)/.exec(query[i]);
+                            if (pair) {
+                                args[ pair[1] ] = decodeURIComponent(pair[2]);
+                            }
+                        }
+                    }
+                }
+
+                $('#inPath').val(path);
+                for (i in filters) {
+                    if (filters.hasOwnProperty(i)) {
+                        $('#filter-' + filters[i]).val(args[filters[i]]);
+                    }
+                }
+
+                return window.location.pathname + window.location.search;
+            }
+
+            function buildQuery() {
+                var query = '/' + $('#inPath').val();
+                var args = [];
+
+                var i;
+                for (i in filters) {
+                    if (filters.hasOwnProperty(i)) {
+                        var value = $('#filter-' + filters[i]).val();
+                        if (filters[i] == 'tags'/* || filters[i] == 'hosts'*/) {
+                            value = value.split(/\s*,\s*/).filter(function (tag) { return tag != ''; }).join(',');
+                        }
+                        if (value != '') {
+                            args.push(filters[i] + '=' + value);
+                        }
+                    }
+                }
+
+                if (args.length > 0) {
+                    query += '?' + args.join('&');
+                }
+
+                return query;
+            }
+
+            function render(data) {
+                for (var i in data) {
+                    if (data.hasOwnProperty(i)) {
+                        var $item = $('.template.item').clone();
+
+                        var host = data[i].host;
+                        var date = new Date(data[i].date);
+
+                        var _00 = function(s) {
+                            s = s.toString();
+                            while(s.length < 2) s = '0' + s;
+                            return s;
+                        };
+                        $item.find('.date').text((host ? host + ' :: ' : '') +
+                                date.getFullYear() + '-' +
+                                _00(date.getMonth() + 1) + '-' +
+                                _00(date.getDate()) + ' ' +
+                                _00(date.getHours()) + ':' +
+                                _00(date.getMinutes()) + ':' +
+                                _00(date.getSeconds())
+                        );
+
+                        $item.find('.type').text(data[i].type);
+                        if (data[i].code) {
+                            $item.find('.type').append(' (code: ' + safeHtml(data[i].code) + ')');
+                        }
+
+                        var text = data[i].text;
+                        if (text) {
+                            $item.find('.text').html(safeHtml(text).replace(/\n/g, '<br />'));
+                        }
+
+                        (data[i].tags || []).forEach(function (tag) {
+                            var $tag = $('<span/>').text(safeHtml(tag)).attr('id', 'tag_' + tag);
+                            $item.find('.tags').append($tag);
+                        });
+
+                        if (text) {
+                            $item.find('.text').html(safeHtml(text).replace(/\n/g, '<br />'));
+                        }
+
+                        var more = safeHtml(data[i].more);
+                        if (more) {
+                            $item.find('.more').html('<pre>' + more + '</pre>');
+                        } else {
+                            $item.find('.more').hide();
+                        }
+                        $item.removeClass('template').appendTo($('#list'));
+                    }
+                }
+            }
+
+            function runQuery(query, callback) {
+                var $list = $('#list');
+                $list.animate({opacity: 0.3}, 200, 'swing');
+                $.getJSON(query, null, function (data) {
+                    $list.html('');
+                    render(data);
+                    window.history.replaceState({data: data});
+                    $list.clearQueue().animate({opacity: 1}, 200, 'swing');
+
+                    if (callback) { callback(data); }
+                });
+            }
+
+            function go() {
+                var query = buildQuery();
+                if (query != (window.location.pathname + window.location.search)) {
+                    window.history.pushState(null, null, query);
+                    runQuery(query);
+                }
+            }
+
+            $('#btnPath').click(go);
+            $(document).on('focusin', 'details', function () { $(this).blur(); });
+            $(document).on('dblclick', 'details[open]', function () {
+                $(this).removeAttr('open');
+            });
+
+            $('#inPath').keyup(function(e){
+                if (e.keyCode == 13) {
+                    $('#btnPath').click();
+                }
+            });
+
+            var typing = null;
+            $('input.filter').keyup(function(e){
+                clearTimeout(typing);
+                if (e.keyCode == 13) { go(); }
+                typing = setTimeout(go, 1000)
+            });
+
+            $('#list').on('click', '.tags span', function () {
+                var tag = this.id.split('_').pop();
+                var $filter = $('#filter-tags');
+                var tags = $filter.val().split(/\s*,\s*/).filter(function (tag) { return tag != ''; });
+                var found = false;
+                tags.forEach(function (t) {
+                    if (t == tag) found = true;
+                });
+                if (!found) {
+                    tags.push(tag);
+                    $filter.val(tags.join(','));
+                }
+                go();
+            });
+
+            window.addEventListener('popstate', function (e) {
+                parseQuery();
+                if (e.state && e.state.hasOwnProperty('data')) {
+                    render(e.state.data);
+                }
+            });
+
+            runQuery(parseQuery());
+
+            $(window).resize(function () {
+               if ($(window).width() > 750) {
+                   $('#list,#sidebar').removeClass('responsive');
+               } else {
+                   $('#list,#sidebar').addClass('responsive');
+               }
+            });
+            $(window).resize();
+
+        });
+    </script>
+</head>
+<body>
+<div class="template item">
+    <div class="date"></div>
+    <div class="type"></div>
+    <div class="code"></div>
+    <div class="text"></div>
+    <details class="more"></details>
+    <div class="tags"></div>
+</div>
+<div id="page">
+    <div id="sidebar">
+        <label for="inPath">Path: /</label>
+        <input type="text" id="inPath" />
+        <button id="btnPath">&rarr;</button>
+        <hr />
+        <label for="filter-type">Type:</label>
+        <input class="filter" type="text" id="filter-type" style="width: 150px"/>
+        <input class="filter" type="text" id="filter-code" placeholder="code" style="width: 30px"/>
+        <br/>
+        <label for="filter-host">Host:</label>
+        <input class="filter" type="text" id="filter-host" style="width: 200px" />
+        <br/>
+        <label for="filter-tags">Tags:</label>
+        <input class="filter" type="text" id="filter-tags" placeholder="separate by ','" style="width: 200px" />
+        <br/>
+        <label for="filter-from">From:</label>
+        <input class="filter" type="text" id="filter-from" placeholder="1985-10-26 01:22:00" style="width: 150px"/>
+        <br/>
+        <label for="filter-till">Till:</label>
+        <input class="filter" type="text" id="filter-till" placeholder="2015-10-26 01:21:00" style="width: 150px"/>
+    </div>
+    <div id="list">
+
+    </div>
+</div>
+</body>
+</html>
