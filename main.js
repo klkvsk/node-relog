@@ -14,6 +14,7 @@ try {
      *  exports.mongo_user = null;
      *  exports.mongo_pass = null;
      *  exports.http_auth = null; // set to "user:pass" for http basic auth
+     *  exports.log_requests = false;
      */
     config = require('./config.js');
 
@@ -171,7 +172,9 @@ function requestListener(request, response) {
                     if (till) { criteria.date.$lte = till; }
                 }
                 var skip = (parseInt(url.query.skip, 10) || 0) * perPage;
-                console.log(criteria);
+                if (config.log_requests === true) {
+                    console.log(criteria);
+                }
                 dao.find(criteria).skip(skip).limit(perPage).sort('_id', 'desc', function(err, cursor) {
                     if (err) {
                         Response.internalError(response);
@@ -224,8 +227,9 @@ function requestListener(request, response) {
                         tags: (url.query.tags || '').split(/\s*,\s*/).filter(function (x) { return x !== ''; }),
                         more: post
                     };
-
-                    console.log(log);
+                    if (config.log_requests === true) {
+                        console.log(log);
+                    }
                     if (!log.type || !log.path || (!log.code && !log.text)) {
                         Response.badRequest(response);
                     } else {
@@ -234,7 +238,7 @@ function requestListener(request, response) {
                     }
 
                 } catch (e) {
-                    console.log(e);
+                    console.error(e);
                     Response.internalError(response);
                 }
             });

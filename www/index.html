@@ -121,7 +121,7 @@
             function parseQuery() {
                 var i;
                 var path = window.location.pathname.split('/')[1];
-                $('title').text('ReLog - ' + path);
+                $('title').text('ReLog - /' + path);
                 var query = window.location.search;
                 var args = {};
                 if (query && query.length > 0 && query[0] == '?') {
