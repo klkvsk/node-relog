@@ -1,5 +1,3 @@
-/*jshint bitwise:true, curly:true, eqeqeq:true, forin:true, noarg:true, noempty:true, nonew:true, undef:true, node:true */
-
 var fs = require('fs');
 var http = require('http');
 var mongodb = require('mongodb');
@@ -60,7 +58,7 @@ var Response = {
                 case 'ico':  contentType = 'image/x-icon'; encoding = 'binary'; break;
             }
         }
-        var data = fs.readFileSync(filename, { encoding: encoding } );
+        var data = fs.readFileSync(filename, encoding);
         if (typeof vars === 'object') {
             var key;
             for (key in vars) {
@@ -84,6 +82,11 @@ function connectToMongo(callback) {
         var ready = function (err) {
             if (err) { throw err; }
             dao = db.db('relog').collection('items');
+            dao.ensureIndex({path: 1, type: 1, code: 1}, { background: true });
+            dao.ensureIndex({path: 1, text: 1},  { background: true });
+            dao.ensureIndex({path: 1, host: 1},  { background: true });
+            dao.ensureIndex({path: 1, tags: 1},  { background: true });
+            dao.ensureIndex({path: 1, date: -1}, { background: true });
             if (callback) { callback(); }
         };
 
