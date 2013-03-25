@@ -18,6 +18,7 @@
         }
 
         #list {
+            position: relative;
             margin-left: 350px;
         }
 
@@ -41,10 +42,19 @@
             box-shadow: 0 0 10px #444;
         }
 
-        .date {
+        .origin {
             color: #666;
             font-size: 80%;
         }
+        .origin span {
+            margin-right: 20px;
+        }
+
+        .host:hover {
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
         .type {
             font-weight: bold;
             font-size: 120%;
@@ -86,10 +96,21 @@
             padding: 5px;
             border-radius: 3px;
         }
+
+        .btn-reset {
+            cursor: pointer;
+            -webkit-transition: color 0.3s ease;
+            color: #999;
+        }
+
+        .btn-reset:hover {
+            color: #333;
+        }
     </style>
     <script type="text/javascript">
         $(function () {
             var filters = ['type', 'code', 'host', 'tags', 'from', 'till'];
+            var isLoading = false;
 
             function safeHtml(s) {
                 if (!s) return s;
@@ -115,7 +136,7 @@
                     }
                 }
 
-                $('#inPath').val(path);
+                $('#input-path').val(path);
                 for (i in filters) {
                     if (filters.hasOwnProperty(i)) {
                         $('#filter-' + filters[i]).val(args[filters[i]]);
@@ -126,7 +147,7 @@
             }
 
             function buildQuery() {
-                var query = '/' + $('#inPath').val();
+                var query = '/' + $('#input-path').val();
                 var args = [];
 
                 var i;
@@ -162,7 +183,11 @@
                             while(s.length < 2) s = '0' + s;
                             return s;
                         };
-                        $item.find('.date').text((host ? host + ' :: ' : '') +
+
+                        if (host) {
+                            $item.find('.host').text(host);
+                        }
+                        $item.find('.date').text(
                                 date.getFullYear() + '-' +
                                 _00(date.getMonth() + 1) + '-' +
                                 _00(date.getDate()) + ' ' +
@@ -182,7 +207,7 @@
                         }
 
                         (data[i].tags || []).forEach(function (tag) {
-                            var $tag = $('<span/>').text(safeHtml(tag)).attr('id', 'tag_' + tag);
+                            var $tag = $('<span/>').text(safeHtml(tag));
                             $item.find('.tags').append($tag);
                         });
 
@@ -197,6 +222,8 @@
                             $item.find('.more').hide();
                         }
                         $item.removeClass('template').appendTo($('#list'));
+
+                        $('#stat-loaded').text(data.length);
                     }
                 }
             }
@@ -205,32 +232,38 @@
                 var $list = $('#list');
                 $list.animate({opacity: 0.3}, 200, 'swing');
                 $.getJSON(query, null, function (data) {
-                    $list.html('');
+                    $list.find('.item').remove();
                     render(data);
                     window.history.replaceState({data: data});
                     $list.clearQueue().animate({opacity: 1}, 200, 'swing');
-
                     if (callback) { callback(data); }
                 });
             }
 
             function go() {
+                if (isLoading)
+                    return;
+                isLoading = true;
+
                 var query = buildQuery();
                 if (query != (window.location.pathname + window.location.search)) {
                     window.history.pushState(null, null, query);
-                    runQuery(query);
+                    runQuery(query, function () {
+                        isLoading = false;
+                        $('body').animate({scrollTop: 0}, 500);
+                    });
                 }
             }
 
-            $('#btnPath').click(go);
+            $('#btn-go').click(go);
             $(document).on('focusin', 'details', function () { $(this).blur(); });
             $(document).on('dblclick', 'details[open]', function () {
                 $(this).removeAttr('open');
             });
 
-            $('#inPath').keyup(function(e){
+            $('#input-path').keyup(function(e){
                 if (e.keyCode == 13) {
-                    $('#btnPath').click();
+                    $('#btn-go').click();
                 }
             });
 
@@ -242,7 +275,7 @@
             });
 
             $('#list').on('click', '.tags span', function () {
-                var tag = this.id.split('_').pop();
+                var tag = $(this).text();
                 var $filter = $('#filter-tags');
                 var tags = $filter.val().split(/\s*,\s*/).filter(function (tag) { return tag != ''; });
                 var found = false;
@@ -253,6 +286,11 @@
                     tags.push(tag);
                     $filter.val(tags.join(','));
                 }
+                go();
+            });
+
+            $('#list').on('click', '.host', function () {
+                $('#filter-host').val($(this).text());
                 go();
             });
 
@@ -274,12 +312,63 @@
             });
             $(window).resize();
 
+            $('.btn-reset').click(function () {
+                $($(this).data('target')).val('');
+                go();
+            });
+
+            $('.filter').change(function() {
+                var $btnReset = $('.btn-reset[data-target="' + this.id + '"]');
+                console.log($btnReset);
+                if ($(this).val() != '') {
+                    $btnReset.show();
+                } else {
+                    $btnReset.hide();
+                }
+            });
+
+            $(window).scroll(function() {
+                if ($(this).scrollTop() + $(this).height() >  $('html').height() - 50) {
+                    console.log('gotta load');
+                }
+            })
+        });
+
+
+        $(function () {
+            function faketext(length) {
+                var text = '';
+                var abc = '1 2 3 4 56 7 8 9 0 abcdefghijklmnopqrstuvwxyz';
+                while(length--) {
+                    text += abc[Math.floor(Math.random() * abc.length)];
+                }
+                return text.replace(/\s+/g, ' ');
+            }
+            $('#gen').click(function () {
+                var i;
+                for (i = 0; i < 100; i++) {
+                    var args = [
+                        'host=192.168.1.' + (Math.round(Math.random() * 255)).toString(),
+                        'type=' + faketext(32),
+                        'code=' + Math.round(Math.random() * 10000),
+                        'text=' + faketext(255),
+                        'tags=' + faketext(2) + ',' + faketext(2) + ',' + faketext(2)
+                    ];
+                    $.post('/' + $('#input-path').val() + '?' + args.join('&'), faketext(2048));
+                }
+            });
+
         });
     </script>
 </head>
 <body>
+<!-- uncomment for testing: button for posting a bunch of random data -->
+<!--<button id="gen" style="position:fixed;z-index: 1">generate</button>-->
 <div class="template item">
-    <div class="date"></div>
+    <div class="origin">
+        <span class="date"></span>
+        <span class="host"></span>
+    </div>
     <div class="type"></div>
     <div class="code"></div>
     <div class="text"></div>
@@ -288,29 +377,37 @@
 </div>
 <div id="page">
     <div id="sidebar">
-        <label for="inPath">Path: /</label>
-        <input type="text" id="inPath" />
-        <button id="btnPath">&rarr;</button>
+        <label for="input-path">Path: /</label>
+        <input type="text" id="input-path" />
+        <button id="btn-go">&rarr;</button>
         <hr />
         <label for="filter-type">Type:</label>
-        <input class="filter" type="text" id="filter-type" style="width: 150px"/>
-        <input class="filter" type="text" id="filter-code" placeholder="code" style="width: 30px"/>
+        <input class="filter" type="text" id="filter-type" style="width: 120px"/><div style="display: inline-block; width:10px">
+        </div><input class="filter" type="text" id="filter-code" placeholder="code" style="width: 30px"/>
+        <span class="btn-reset" data-target="#filter-type,#filter-code">&times;</span>
         <br/>
         <label for="filter-host">Host:</label>
-        <input class="filter" type="text" id="filter-host" style="width: 200px" />
+        <input class="filter" type="text" id="filter-host" style="width: 170px" />
+        <span class="btn-reset" data-target="#filter-host">&times;</span>
         <br/>
         <label for="filter-tags">Tags:</label>
-        <input class="filter" type="text" id="filter-tags" placeholder="separate by ','" style="width: 200px" />
+        <input class="filter" type="text" id="filter-tags" placeholder="separate by ','" style="width: 170px" />
+        <span class="btn-reset" data-target="#filter-tags">&times;</span>
         <br/>
         <label for="filter-from">From:</label>
         <input class="filter" type="text" id="filter-from" placeholder="1985-10-26 01:22:00" style="width: 150px"/>
+        <span class="btn-reset" data-target="#filter-from">&times;</span>
         <br/>
         <label for="filter-till">Till:</label>
         <input class="filter" type="text" id="filter-till" placeholder="2015-10-26 01:21:00" style="width: 150px"/>
+        <span class="btn-reset" data-target="#filter-till">&times;</span>
+        <hr />
+        Items loaded: <span id="stat-loaded">0</span>
     </div>
     <div id="list">
 
     </div>
+
 </div>
 </body>
 </html>
