@@ -26,6 +26,7 @@
             position: fixed;
             top: 0;
             left: 0;
+            width: 300px;
         }
 
         #sidebar.responsive {
@@ -243,10 +244,11 @@
             function go() {
                 if (isLoading)
                     return;
-                isLoading = true;
 
                 var query = buildQuery();
                 if (query != (window.location.pathname + window.location.search)) {
+                    isLoading = true;
+
                     window.history.pushState(null, null, query);
                     runQuery(query, function () {
                         isLoading = false;
@@ -270,8 +272,13 @@
             var typing = null;
             $('input.filter').keyup(function(e){
                 clearTimeout(typing);
-                if (e.keyCode == 13) { go(); }
-                typing = setTimeout(go, 1000)
+                var $filter = $(this);
+                var change = function() {
+                    $filter.change();
+                    go();
+                };
+                if (e.keyCode == 13) { change(); }
+                typing = setTimeout(change, 1000)
             });
 
             $('#list').on('click', '.tags span', function () {
@@ -312,24 +319,28 @@
             });
             $(window).resize();
 
-            $('.btn-reset').click(function () {
-                $($(this).data('target')).val('');
-                go();
-            });
+            $('.btn-reset')
+                .click(function () {
+                    $($(this).data('target')).val('').change();
+                    go();
+                })
+                .each(function () {
+                    var $btnReset = $(this);
+                    $($btnReset.data('target')).change(function () {
+                        if ($(this).val() != '') {
+                            $btnReset.show();
+                        } else {
+                            $btnReset.hide();
+                        }
+                    })
+                });
 
-            $('.filter').change(function() {
-                var $btnReset = $('.btn-reset[data-target="' + this.id + '"]');
-                console.log($btnReset);
-                if ($(this).val() != '') {
-                    $btnReset.show();
-                } else {
-                    $btnReset.hide();
-                }
-            });
+
+            $('.filter').change();
 
             $(window).scroll(function() {
                 if ($(this).scrollTop() + $(this).height() >  $('html').height() - 50) {
-                    console.log('gotta load');
+                    //console.log('gotta load');
                 }
             })
         });
@@ -382,16 +393,16 @@
         <button id="btn-go">&rarr;</button>
         <hr />
         <label for="filter-type">Type:</label>
-        <input class="filter" type="text" id="filter-type" style="width: 120px"/><div style="display: inline-block; width:10px">
+        <input class="filter" type="text" id="filter-type" style="width: 140px"/><div style="display: inline-block; width:10px">
         </div><input class="filter" type="text" id="filter-code" placeholder="code" style="width: 30px"/>
         <span class="btn-reset" data-target="#filter-type,#filter-code">&times;</span>
         <br/>
         <label for="filter-host">Host:</label>
-        <input class="filter" type="text" id="filter-host" style="width: 170px" />
+        <input class="filter" type="text" id="filter-host" style="width: 190px" />
         <span class="btn-reset" data-target="#filter-host">&times;</span>
         <br/>
         <label for="filter-tags">Tags:</label>
-        <input class="filter" type="text" id="filter-tags" placeholder="separate by ','" style="width: 170px" />
+        <input class="filter" type="text" id="filter-tags" placeholder="separate by ','" style="width: 190px" />
         <span class="btn-reset" data-target="#filter-tags">&times;</span>
         <br/>
         <label for="filter-from">From:</label>
