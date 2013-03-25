@@ -1,6 +1,7 @@
-var fs = require('fs');
-var http = require('http');
+var fs      = require('fs');
+var http    = require('http');
 var mongodb = require('mongodb');
+var buffer  = require('buffer');
 
 var config;
 try {
@@ -12,6 +13,7 @@ try {
      *  exports.mongo_db = 'relog';
      *  exports.mongo_user = null;
      *  exports.mongo_pass = null;
+     *  exports.http_auth = null; // set to "user:pass" for http basic auth
      */
     config = require('./config.js');
 
@@ -120,6 +122,24 @@ function requestListener(request, response) {
     /** @type Url */
     var url = require('url').parse(request.url, true);
     var path = url.pathname.split('/')[1];
+
+    if (config.http_auth) {
+        var authorized = false;
+        if ('authorization' in request.headers) {
+            var credentials = request.headers.authorization.match(/^basic (.+)$/i);
+            if (credentials) {
+                var auth = (new Buffer(credentials[1], 'base64')).toString('ascii');
+                if (auth === config.http_auth) {
+                    authorized = true;
+                }
+            }
+        }
+        if (!authorized) {
+            response.writeHead(401, {'WWW-Authenticate': 'Basic realm="ReLog"'});
+            response.end('not authorized');
+            return;
+        }
+    }
 
     switch (request.method.toUpperCase()) {
         case 'GET':
