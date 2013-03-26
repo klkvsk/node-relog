@@ -3,7 +3,7 @@ var http    = require('http');
 var mongodb = require('mongodb');
 var buffer  = require('buffer');
 
-var config;
+var config = {};
 try {
     /**
      * to customize settings, put them in config.js. Example (with default values):
@@ -16,13 +16,14 @@ try {
      *  exports.http_auth = null; // set to "user:pass" for http basic auth
      *  exports.log_requests = false;
      */
-    config = require('./config.js');
+    [process.env.RELOG_CONFIG, './config.js', '/etc/relog.config.js', '/usr/local/etc/relog.config.js' ]
+        .forEach(function (file) {
+            if (fs.existsSync(file)) { config = require(file); }
+        });
 
 } catch (e) {
     if (e.code !== 'MODULE_NOT_FOUND') { throw e; }
-    config = {};
 }
-
 
 var dao = null;
 
