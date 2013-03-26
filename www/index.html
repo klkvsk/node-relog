@@ -159,6 +159,13 @@
                             value = value.split(/\s*,\s*/).filter(function (tag) { return tag != ''; }).join(',');
                         }
                         if (value != '') {
+                            if (filters[i] == 'from' || filters[i] == 'till') {
+                                value = new Date(value);
+                                if (value.toString() == 'Invalid Date') {
+                                    continue;
+                                }
+                                value = value.toISOString();
+                            }
                             args.push(filters[i] + '=' + value);
                         }
                     }
