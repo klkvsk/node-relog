@@ -1,6 +1,6 @@
 {
     "name": "relog",
-    "version": "0.1.3",
+    "version": "0.1.4",
     "author": "Mikhail Kulakovskiy <m@klkvsk.ru>",
     "description": "http service for remote logging",
     "scripts": {
