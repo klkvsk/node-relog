@@ -110,7 +110,7 @@
     </style>
     <script type="text/javascript">
         $(function () {
-            var filters = ['type', 'code', 'host', 'tags', 'from', 'till'];
+            var filters = ['type', 'code', 'text', 'host', 'tags', 'from', 'till'];
             var isLoading = false;
 
             function safeHtml(s) {
@@ -270,14 +270,14 @@
                 $(this).removeAttr('open');
             });
 
-            $('#input-path').keyup(function(e){
+            $('#input-path').on('keyup mouseup change', function(e){
                 if (e.keyCode == 13) {
                     $('#btn-go').click();
                 }
             });
 
             var typing = null;
-            $('input.filter').keyup(function(e){
+            $('input.filter').on('keyup mouseup change', function(e){
                 clearTimeout(typing);
                 var $filter = $(this);
                 var change = function() {
@@ -407,6 +407,10 @@
         <label for="filter-host">Host:</label>
         <input class="filter" type="text" id="filter-host" style="width: 190px" />
         <span class="btn-reset" data-target="#filter-host">&times;</span>
+        <br/>
+        <label for="filter-text">Text:</label>
+        <input class="filter" type="text" id="filter-text" style="width: 190px" />
+        <span class="btn-reset" data-target="#filter-text">&times;</span>
         <br/>
         <label for="filter-tags">Tags:</label>
         <input class="filter" type="text" id="filter-tags" placeholder="separate by ','" style="width: 190px" />

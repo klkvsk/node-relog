@@ -158,6 +158,10 @@ function requestListener(request, response) {
                 if (url.query.host) {
                     criteria.host = {$regex: url.query.host, $options: 'i'};
                 }
+                if (url.query.text) {
+                    var textRegex = {$regex: url.query.text, $options: 'i'};
+                    criteria.$or = [ { text: textRegex }, { more: textRegex } ];
+                }
                 if (url.query.tags) {
                     var tags = url.query.tags.split(/\s*,\s*/g).filter(function(t) { return t !== ''; });
                     if (tags.length > 0) {
