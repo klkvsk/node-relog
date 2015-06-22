@@ -242,7 +242,7 @@
                 $.getJSON(query, null, function (data) {
                     $list.find('.item').remove();
                     render(data);
-                    window.history.replaceState({data: data});
+                    window.history.replaceState({data: data}, null);
                     $list.clearQueue().animate({opacity: 1}, 200, 'swing');
                     if (callback) { callback(data); }
                 });
